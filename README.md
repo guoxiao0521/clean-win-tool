@@ -107,4 +107,4 @@ clean-win-tool/
 
 ## 📄 License
 
-如需开源发布，建议补充 `LICENSE` 文件并在此处声明许可证类型。
+本项目基于 [MIT License](./LICENSE) 开源。
