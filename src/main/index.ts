@@ -1,6 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { spawn } from 'child_process'
+import { existsSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
@@ -40,11 +41,39 @@ function getScriptPath(): string {
   return join(process.resourcesPath, 'CleanUp.ps1')
 }
 
+function getPowerShellExecutable(): string {
+  const winDir = process.env['WINDIR'] || process.env['SystemRoot'] || 'C:\\Windows'
+  const candidates = [
+    join(winDir, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+    join(winDir, 'Sysnative', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+    'powershell.exe',
+    'pwsh.exe'
+  ]
+
+  for (const candidate of candidates) {
+    if (candidate.includes('\\') && existsSync(candidate)) {
+      return candidate
+    }
+    if (!candidate.includes('\\')) {
+      return candidate
+    }
+  }
+
+  return 'powershell.exe'
+}
+
 function setupIPC(): void {
   ipcMain.on('start-cleanup', (event) => {
     const scriptPath = getScriptPath()
+    const psExe = getPowerShellExecutable()
 
-    const ps = spawn('powershell.exe', [
+    if (!existsSync(scriptPath)) {
+      event.sender.send('cleanup-output', `[ERR] 找不到清理脚本: ${scriptPath}`)
+      event.sender.send('cleanup-complete', { code: -1 })
+      return
+    }
+
+    const ps = spawn(psExe, [
       '-NoProfile',
       '-ExecutionPolicy', 'Bypass',
       '-File', scriptPath
