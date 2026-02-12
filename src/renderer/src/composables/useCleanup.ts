@@ -52,6 +52,13 @@ export function useCleanup(): UseCleanupReturn {
   let removeOutputListener: (() => void) | null = null
   let removeCompleteListener: (() => void) | null = null
 
+  function cleanupListeners(): void {
+    removeOutputListener?.()
+    removeCompleteListener?.()
+    removeOutputListener = null
+    removeCompleteListener = null
+  }
+
   function updateItemStatus(text: string, status: CleanStatus): void {
     for (const [id, kws] of Object.entries(ITEM_KEYWORDS)) {
       if (kws.some((kw) => text.includes(kw))) {
@@ -86,6 +93,8 @@ export function useCleanup(): UseCleanupReturn {
   function startCleanup(): void {
     if (isRunning.value) return
 
+    cleanupListeners()
+
     isRunning.value = true
     isComplete.value = false
     freedSpace.value = ''
@@ -98,6 +107,7 @@ export function useCleanup(): UseCleanupReturn {
 
     removeCompleteListener = window.api.onCleanupComplete(
       (_event: unknown, data: { code: number }) => {
+        cleanupListeners()
         isRunning.value = false
         isComplete.value = true
         cleanItems.value.forEach((item) => {
@@ -113,8 +123,7 @@ export function useCleanup(): UseCleanupReturn {
   }
 
   onUnmounted(() => {
-    removeOutputListener?.()
-    removeCompleteListener?.()
+    cleanupListeners()
   })
 
   return {
