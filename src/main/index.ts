@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { spawn } from 'child_process'
 import { existsSync } from 'fs'
+import { StringDecoder } from 'string_decoder'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
@@ -73,25 +74,52 @@ function setupIPC(): void {
       return
     }
 
+    const escapedScriptPath = scriptPath.replace(/'/g, "''")
+    const command = `$OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); & '${escapedScriptPath}'`
+
     const ps = spawn(psExe, [
       '-NoProfile',
       '-ExecutionPolicy', 'Bypass',
-      '-File', scriptPath
+      '-Command', command
     ], {
       windowsHide: true
     })
 
+    const stdoutDecoder = new StringDecoder('utf8')
+    let stdoutPending = ''
     ps.stdout.on('data', (data: Buffer) => {
-      const lines = data.toString('utf-8').split(/\r?\n/).filter(Boolean)
+      stdoutPending += stdoutDecoder.write(data)
+      const lines = stdoutPending.split(/\r?\n/)
+      stdoutPending = lines.pop() ?? ''
       for (const line of lines) {
-        event.sender.send('cleanup-output', line)
+        if (line) {
+          event.sender.send('cleanup-output', line)
+        }
+      }
+    })
+    ps.stdout.on('end', () => {
+      const tail = (stdoutPending + stdoutDecoder.end()).trim()
+      if (tail) {
+        event.sender.send('cleanup-output', tail)
       }
     })
 
+    const stderrDecoder = new StringDecoder('utf8')
+    let stderrPending = ''
     ps.stderr.on('data', (data: Buffer) => {
-      const lines = data.toString('utf-8').split(/\r?\n/).filter(Boolean)
+      stderrPending += stderrDecoder.write(data)
+      const lines = stderrPending.split(/\r?\n/)
+      stderrPending = lines.pop() ?? ''
       for (const line of lines) {
-        event.sender.send('cleanup-output', `[ERR] ${line}`)
+        if (line) {
+          event.sender.send('cleanup-output', `[ERR] ${line}`)
+        }
+      }
+    })
+    ps.stderr.on('end', () => {
+      const tail = (stderrPending + stderrDecoder.end()).trim()
+      if (tail) {
+        event.sender.send('cleanup-output', `[ERR] ${tail}`)
       }
     })
 
