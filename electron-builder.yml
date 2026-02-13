@@ -16,7 +16,7 @@ asarUnpack:
   - resources/**
 win:
   executableName: CleanWin
-  icon: build/icons/icon.ico
+  icon: build/gen.ico
   signAndEditExecutable: true
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
