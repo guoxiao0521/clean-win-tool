@@ -1,5 +1,5 @@
-﻿appId: com.electron.app
-productName: clean-win-tool
+﻿appId: com.cleanwintool.app
+productName: CleanWin
 directories:
   buildResources: build
 files:
@@ -15,11 +15,12 @@ extraResources:
 asarUnpack:
   - resources/**
 win:
-  executableName: clean-win-tool
-  signAndEditExecutable: false
+  executableName: CleanWin
+  icon: build/icons/icon.ico
+  signAndEditExecutable: true
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
-  shortcutName: ${productName}
+  shortcutName: CleanWin
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
 mac:

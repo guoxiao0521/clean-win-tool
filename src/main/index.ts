@@ -6,13 +6,17 @@ import { StringDecoder } from 'string_decoder'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
+const appDisplayName = 'CleanWin'
+const appUserModelId = 'com.cleanwintool.app'
+
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 960,
     height: 680,
+    title: appDisplayName,
     show: false,
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+      ...(process.platform !== 'darwin' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -135,7 +139,8 @@ function setupIPC(): void {
 }
 
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.electron')
+  app.setName(appDisplayName)
+  electronApp.setAppUserModelId(appUserModelId)
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
